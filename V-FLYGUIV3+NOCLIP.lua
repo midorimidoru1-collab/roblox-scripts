@@ -1,45 +1,77 @@
--- [[ V-FLY GUI V3 + CUSTOM AUDIO ]] --
+-- [[ V-FLY GUI V3 + CUSTOM AUDIO & IMAGE ]] --
 
--- カスタムアセットの保存場所を設定（専用フォルダを作成）
+-- カスタムアセットの設定
 local folder_name = "VFlyGuiV3_Assets"
 local audio_filename = "own_world.mp3"
-local audio_url = "https://raw.githubusercontent.com/midorimidoru1-collab/roblox-scripts/main/own_world.mp3"
+local image_filename = "cat_image.jpg"
 
--- デバイス内に専用フォルダを作成する処理
+local audio_url = "https://raw.githubusercontent.com/midorimidoru1-collab/roblox-scripts/main/own_world.mp3"
+local image_url = "https://raw.githubusercontent.com/midorimidoru1-collab/roblox-scripts/main/cat_image.jpg"
+
+-- デバイス内に専用フォルダを作成
 if not isfolder(folder_name) then
     makefolder(folder_name)
 end
 
 local audio_path = folder_name .. "/" .. audio_filename
+local image_path = folder_name .. "/" .. image_filename
 
--- 音声ファイルが存在しない場合はGitHubからダウンロードして専用フォルダに保存
-if not isfile(audio_path) then
-    local success, result = pcall(function()
-        return game:HttpGet(audio_url)
-    end)
-    if success then
-        writefile(audio_path, result)
-    else
-        warn("Failed to download audio asset: " .. tostring(result))
+-- アセットのダウンロード処理
+local function downloadAsset(url, path)
+    if not isfile(path) then
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+        if success then
+            writefile(path, result)
+        else
+            warn("Failed to download asset: " .. path .. " | Error: " .. tostring(result))
+        end
     end
 end
 
--- 専用フォルダからカスタムアセットをロードして再生
+downloadAsset(audio_url, audio_path)
+downloadAsset(image_url, image_path)
+
+-- 音声の再生
 local sound = Instance.new("Sound")
-local success, asset_id = pcall(function()
+local success_audio, asset_id_audio = pcall(function()
     return getcustomasset(audio_path)
 end)
 
-if success then
-    sound.SoundId = asset_id
+if success_audio then
+    sound.SoundId = asset_id_audio
     sound.Volume = 1
     sound.Parent = game:GetService("CoreGui")
     sound:Play()
-else
-    warn("Failed to load custom asset: " .. tostring(asset_id))
 end
 
--- GUI Main Code
+-- 画像の表示（画面中央上部）
+local screen_gui_image = Instance.new("ScreenGui")
+screen_gui_image.Name = "VFlyImageGui"
+screen_gui_image.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+screen_gui_image.ResetOnSpawn = false
+
+local image_label = Instance.new("ImageLabel")
+image_label.Name = "TopCenterImage"
+image_label.Parent = screen_gui_image
+image_label.AnchorPoint = Vector2.new(0.5, 0)
+image_label.Position = UDim2.new(0.5, 0, 0.05, 0) -- 画面上部から5%の位置
+image_label.Size = UDim2.new(0, 150, 0, 150) -- サイズ調整（150x150）
+image_label.BackgroundTransparency = 1
+image_label.BorderSizePixel = 0
+
+local success_image, asset_id_image = pcall(function()
+    return getcustomasset(image_path)
+end)
+
+if success_image then
+    image_label.Image = asset_id_image
+else
+    image_label.Visible = false
+end
+
+-- GUI Main Code (V-FLY GUI)
 local main = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
 local up = Instance.new("TextButton")
@@ -237,10 +269,8 @@ vnoclipBtn.MouseButton1Click:Connect(function()
 end)
 
 closebutton.MouseButton1Click:Connect(function()
-    if sound then
-        sound:Stop()
-        sound:Destroy()
-    end
+    if sound then sound:Stop() sound:Destroy() end
+    if screen_gui_image then screen_gui_image:Destroy() end
 	main:Destroy()
 end)
 
